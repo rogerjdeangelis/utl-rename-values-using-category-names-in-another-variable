@@ -1,4 +1,10 @@
-Rename values using category names in another variable
+SAS Forum: Rename values using category names in another variable
+
+    TWO SOLUTIONS
+    -------------
+
+        1. DOSUBL and utl_renamel macro
+        2. DOSUBL and DO_OVER macro
 
 github
 https://tinyurl.com/y7wylqu6
@@ -52,6 +58,8 @@ RULE  RENAME
 PROCESS  (you need the rename macro below or from github)
 ==========================================================
 
+1. DOSUBL and utl_renamel macro
+-------------------------------
 
 %symdel nams / nowarn; * just in case;
 data want;
@@ -69,6 +77,35 @@ data want;
   end;
 
   set have(rename=(%utl_renamel(old=val1 val2 val3,new=&nams)));
+
+  drop var:;
+
+run;quit;
+
+
+2. DOSUBL and DO_OVER macro
+---------------------------
+
+%symdel newsn oldsn news1 olds1 / nowarn; * just in case;
+data want;
+
+  * get new names in string nams;
+  if _n_=0 then do; %let rc=%sysfunc(dosubl('
+    data _null_;
+     length nams $200;
+     set have(obs=1);
+     array vars[*] var:;
+     nams=catx(' ',of vars[*]) ;
+     call symputx("new",nams);
+    run;quit;
+    %array(news,values=&new);
+    %array(olds,values=val1-val3);
+    '));
+  end;
+
+  set have(rename=(
+     %do_over(olds news,phrase=%str(?olds = ?news))
+     ));
 
   drop var:;
 
@@ -129,6 +166,5 @@ run;quit;
         %put &warn do not have same number of elements. ;
 
 %mend  utl_renamel ;
-
 
 
